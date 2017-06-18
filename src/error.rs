@@ -12,6 +12,24 @@ pub enum Error {
     Serde(JsonError),
 }
 
+impl From<SmtpError> for Error {
+    fn from(err: SmtpError) -> Self {
+        Error::Smtp(err)
+    }
+}
+
+impl From<IoError> for Error {
+    fn from(err: IoError) -> Self {
+        Error::File(err)
+    }
+}
+
+impl From<JsonError> for Error {
+    fn from(err: JsonError) -> Self {
+        Error::Serde(err)
+    }
+}
+
 impl StdError for Error {
     fn description(&self) -> &str {
         use Error::*;
