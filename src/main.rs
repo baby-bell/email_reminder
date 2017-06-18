@@ -1,7 +1,12 @@
 extern crate hyper;
 extern crate futures;
 extern crate lettre;
+extern crate chrono;
 
+use futures::future;
+use hyper::{Method, StatusCode};
+use hyper::server::{Http, Request, Response, Service};
+use hyper::header::ContentLength;
 use lettre::transport::smtp::{SmtpTransport, SmtpTransportBuilder};
 
 extern crate serde;
@@ -12,33 +17,73 @@ extern crate serde_derive;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::fs::File;
+use std::cell::Cell;
 
 mod error;
+mod event;
+use event::EventTable;
 use error::Error;
 
-const CREDENTIALS_FILE: &str = "credentials.json";
+const SETTINGS_FILE: &str = "settings.json";
 
 #[derive(Deserialize)]
-struct Credentials {
-    username: String,
-    password: String,
+struct Settings {
+    pub username: String,
+    pub password: String,
+    pub destination_email: String,
 }
 
-impl Credentials {
-    pub fn authenticate(&self, builder: SmtpTransportBuilder) -> SmtpTransportBuilder {
-        builder.credentials(&self.username, &self.password)
+struct ReminderService {
+    events: Cell<EventTable>,
+}
+
+impl ReminderService {
+    pub fn handle_post(&self, path: &str) -> FutureResult<(), hyper::Error> {
+        unimplemented!()
+    }
+
+    pub fn handle_get(&self, path: &str) -> FutureResult<(), hyper::Error> {
+        let mut path_iter = path.split('/');
+    }
+
+    pub fn handle_put(&self, path: &str) -> FutureResult<(), hyper::Error> {
+        unimplemented!()
+    }
+
+    pub fn handle_delete(&self, path: &str) -> FutureResult<(), hyper::Error> {
+        unimplemented!()
+    }
+}
+
+impl Service for ReminderService {
+    type Request = Request;
+    type Response = Response;
+    type Error = hyper::Error;
+    type Future = future::FutureResult<Self::Response, Self::Error>;
+
+    fn call(&self, req: Request) -> Self::Future {
+        let mut response = Response::new();
+        let path = req.path();
+
+        match req.method() {
+            &Method::Get => self.handle_get(path),
+            &Method::Put => self.handle_put(path),
+            &Method::Post => self.handle_post(path),
+            &Method::Delete => self.handle_delete(path),
+        }
     }
 }
 
 fn main() {
 }
 
-fn connect_to_email() -> Result<SmtpTransport, Error> {
+fn connect_to_email(settings: &Settings) -> Result<SmtpTransport, Error> {
     let mut buf = String::new();
     let mut file = BufReader::new(File::open(CREDENTIALS_FILE)?);
     file.read_to_string(&mut buf)?;
-    let creds: Credentials = serde_json::from_str(&buf)?;
 
-    let builder = creds.authenticate(SmtpTransportBuilder::new("smtp.gmail.com:587")?.encrypt());
+    let builder = SmtpTransportBuilder::new("smtp.gmail.com:587")?
+        .encrypt()
+        .credentials(&settings.username, &settings.password);
     Ok(builder.build())
 }
