@@ -32,8 +32,8 @@ impl From<JsonError> for Error {
 
 impl StdError for Error {
     fn description(&self) -> &str {
-        use Error::*;
-        use SmtpError::*;
+        use self::Error::*;
+        use lettre::transport::smtp::error::Error::*;
         match self {
             &Smtp(ref err) => {
                 match err {
@@ -54,10 +54,13 @@ impl StdError for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::Error::*;
         match self {
             &Smtp(ref err) => write!(f, "{:?}", err)?,
             &File(ref err) => write!(f, "{}", err)?,
             &Serde(ref err) => write!(f, "{}", err)?,
         }
+
+        Ok(())
     }
 }
