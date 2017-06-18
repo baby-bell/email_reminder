@@ -1,0 +1,6 @@
+[package]
+name = "email_reminder"
+version = "0.1.0"
+authors = ["Brose Johnstone <baby-bell@users.noreply.github.com>"]
+
+[dependencies]
