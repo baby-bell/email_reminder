@@ -1,6 +1,8 @@
 extern crate lettre;
 extern crate chrono;
 extern crate iron;
+#[macro_use]
+extern crate router;
 
 use lettre::transport::smtp::{SmtpTransport, SmtpTransportBuilder};
 
