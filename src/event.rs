@@ -8,6 +8,7 @@ use chrono::offset::local::Local;
 
 type Time = DateTime<Local>;
 
+/// An event that happens on a particular date and time.
 #[derive(Debug, PartialEq, Eq, Clone, Hash, PartialOrd, Ord)]
 pub struct Event {
     time: Time,
@@ -16,6 +17,7 @@ pub struct Event {
 }
 
 impl Event {
+    /// Construct an event with the corresponding data.
     pub fn new(name: String, location: Option<String>, time: Time) -> Self {
         Event {
             name: Rc::new(name),
@@ -25,6 +27,7 @@ impl Event {
     }
 }
 
+/// A table of events and event reminders.
 pub struct EventTable {
     events: BTreeSet<Event>,
     reminders: HashMap<Event, Vec<Time>>,
@@ -42,6 +45,7 @@ impl<'a> Iterator for EventIter<'a> {
 }
 
 impl EventTable {
+    /// Create an `EventTable`.
     pub fn new() -> Self {
         EventTable {
             events: BTreeSet::new(),
@@ -49,11 +53,13 @@ impl EventTable {
         }
     }
 
+    /// Add `e` to the table with no reminders.
     pub fn add_event(&mut self, e: Event) {
         self.events.insert(e.clone());
         self.reminders.insert(e, vec![]);
     }
 
+    /// Get all events that lie within `[start, end)`.
     pub fn events_in_date_range<'a>(&'a self, start: Time, end: Time) -> EventIter<'a> {
         let range_start = Bound::Included(Event::new("".into(), None, start));
         let range_end = Bound::Excluded(Event::new("".into(), None, end));
@@ -61,5 +67,10 @@ impl EventTable {
         EventIter {
             inner: self.events.range((range_start, range_end)),
         }
+    }
+
+    /// Get the reminders for an event
+    pub fn get_reminders<'a>(&'a self, e: &Event) -> Option<&'a Vec<Time>> {
+        self.reminders.get(e)
     }
 }
