@@ -3,7 +3,7 @@ extern crate futures;
 extern crate lettre;
 extern crate chrono;
 
-use futures::future;
+use futures::future::{self, FutureResult};
 use hyper::{Method, StatusCode};
 use hyper::server::{Http, Request, Response, Service};
 use hyper::header::ContentLength;
@@ -38,19 +38,20 @@ struct ReminderService {
 }
 
 impl ReminderService {
-    pub fn handle_post(&self, path: &str) -> FutureResult<(), hyper::Error> {
+    pub fn handle_post(&self, path: &str) -> FutureResult<Response, hyper::Error> {
         unimplemented!()
     }
 
-    pub fn handle_get(&self, path: &str) -> FutureResult<(), hyper::Error> {
+    pub fn handle_get(&self, path: &str) -> FutureResult<Response, hyper::Error> {
         let mut path_iter = path.split('/');
-    }
-
-    pub fn handle_put(&self, path: &str) -> FutureResult<(), hyper::Error> {
         unimplemented!()
     }
 
-    pub fn handle_delete(&self, path: &str) -> FutureResult<(), hyper::Error> {
+    pub fn handle_put(&self, path: &str) -> FutureResult<Response, hyper::Error> {
+        unimplemented!()
+    }
+
+    pub fn handle_delete(&self, path: &str) -> FutureResult<Response, hyper::Error> {
         unimplemented!()
     }
 }
@@ -62,7 +63,7 @@ impl Service for ReminderService {
     type Future = future::FutureResult<Self::Response, Self::Error>;
 
     fn call(&self, req: Request) -> Self::Future {
-        let mut response = Response::new();
+        let mut response: Response = Response::new();
         let path = req.path();
 
         match req.method() {
@@ -70,6 +71,7 @@ impl Service for ReminderService {
             &Method::Put => self.handle_put(path),
             &Method::Post => self.handle_post(path),
             &Method::Delete => self.handle_delete(path),
+            _ => unimplemented!(),
         }
     }
 }
@@ -77,11 +79,15 @@ impl Service for ReminderService {
 fn main() {
 }
 
-fn connect_to_email(settings: &Settings) -> Result<SmtpTransport, Error> {
+fn read_settings() -> Result<Settings, Error> {
     let mut buf = String::new();
-    let mut file = BufReader::new(File::open(CREDENTIALS_FILE)?);
-    file.read_to_string(&mut buf)?;
+    let mut settings_file = BufReader::new(File::open(SETTINGS_FILE)?);
+    settings_file.read_to_string(&mut buf)?;
+    let result: Settings = serde_json::from_str(&buf)?;
+    Ok(result)
+}
 
+fn connect_to_email(settings: &Settings) -> Result<SmtpTransport, Error> {
     let builder = SmtpTransportBuilder::new("smtp.gmail.com:587")?
         .encrypt()
         .credentials(&settings.username, &settings.password);
