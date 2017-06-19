@@ -1,12 +1,7 @@
-extern crate hyper;
-extern crate futures;
 extern crate lettre;
 extern crate chrono;
+extern crate iron;
 
-use futures::future::{self, FutureResult};
-use hyper::{Method, StatusCode};
-use hyper::server::{Http, Request, Response, Service};
-use hyper::header::ContentLength;
 use lettre::transport::smtp::{SmtpTransport, SmtpTransportBuilder};
 
 extern crate serde;
@@ -33,50 +28,9 @@ struct Settings {
     pub destination_email: String,
 }
 
-struct ReminderService {
-    events: Cell<EventTable>,
-}
-
-impl ReminderService {
-    pub fn handle_post(&self, path: &str) -> FutureResult<Response, hyper::Error> {
-        unimplemented!()
-    }
-
-    pub fn handle_get(&self, path: &str) -> FutureResult<Response, hyper::Error> {
-        let mut path_iter = path.split('/');
-        unimplemented!()
-    }
-
-    pub fn handle_put(&self, path: &str) -> FutureResult<Response, hyper::Error> {
-        unimplemented!()
-    }
-
-    pub fn handle_delete(&self, path: &str) -> FutureResult<Response, hyper::Error> {
-        unimplemented!()
-    }
-}
-
-impl Service for ReminderService {
-    type Request = Request;
-    type Response = Response;
-    type Error = hyper::Error;
-    type Future = future::FutureResult<Self::Response, Self::Error>;
-
-    fn call(&self, req: Request) -> Self::Future {
-        let mut response: Response = Response::new();
-        let path = req.path();
-
-        match req.method() {
-            &Method::Get => self.handle_get(path),
-            &Method::Put => self.handle_put(path),
-            &Method::Post => self.handle_post(path),
-            &Method::Delete => self.handle_delete(path),
-            _ => unimplemented!(),
-        }
-    }
-}
-
 fn main() {
+    let settings = read_settings().expect("failed to read settings");
+    connect_to_email(&settings).expect("could not connect to email provider");
 }
 
 fn read_settings() -> Result<Settings, Error> {
