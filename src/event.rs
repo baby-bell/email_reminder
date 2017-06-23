@@ -1,3 +1,4 @@
+use std;
 use std::cmp::Ordering;
 use std::sync::Arc;
 use std::collections::{BTreeSet, HashMap, Bound};
@@ -7,6 +8,7 @@ use std::iter::Filter;
 use chrono::DateTime;
 use chrono::offset::local::Local;
 use serde::ser::{Serialize, Serializer, SerializeStruct};
+use serde::de::{self, Deserialize, Deserializer, Visitor, MapAccess};
 
 type Time = DateTime<Local>;
 
@@ -31,14 +33,65 @@ impl Event {
 
 impl Serialize for Event {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        use std::ops::Deref;
         let mut state = serializer.serialize_struct("Event", 3)?;
         state.serialize_field("time", &self.time)?;
         state.serialize_field("name", &*self.name)?;
         if let Some(ref val) = self.location {
-            state.serialize_field("location", val.deref())?;
+            state.serialize_field("location", val.as_ref())?;
         }
         state.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Event {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de> {
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "lowercase")]
+        enum Field {
+            Time,
+            Name,
+            Location,
+        };
+        struct EventVisitor;
+        impl<'de> Visitor<'de> for EventVisitor {
+            type Value = Event;
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("struct Event")
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Event, V::Error>
+                where V: MapAccess<'de> {
+                let (mut time, mut name, mut location) = (None, None, None);
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Time => {
+                            if time.is_some() {
+                                return Err(de::Error::duplicate_field("time"));
+                            }
+                            time = Some(map.next_value()?);
+                        }
+                        Field::Name => {
+                            if name.is_some() {
+                                return Err(de::Error::duplicate_field("name"));
+                            }
+                            name = Some(map.next_value()?);
+                        }
+                        Field::Location => {
+                            if location.is_some() {
+                                return Err(de::Error::duplicate_field("location"));
+                            }
+                            location = Some(map.next_value()?);
+                        }
+                    }
+                }
+                let time = time.ok_or_else(|| de::Error::missing_field("time"))?;
+                let name = name.ok_or_else(|| de::Error::missing_field("name"))?;
+                Ok(Event::new(name, location, time))
+            }
+        }
+        const FIELDS: &[&str] = &["time", "name", "location"];
+        deserializer.deserialize_struct("Event", FIELDS, EventVisitor)
     }
 }
 
