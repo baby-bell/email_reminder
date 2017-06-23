@@ -1,10 +1,12 @@
 use std::cmp::Ordering;
 use std::rc::Rc;
 use std::collections::{BTreeSet, HashMap, Bound};
-use std::collections::btree_set::Range;
+use std::collections::btree_set::{Iter, Range};
+use std::iter::Filter;
 
 use chrono::DateTime;
 use chrono::offset::local::Local;
+use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 type Time = DateTime<Local>;
 
@@ -24,6 +26,19 @@ impl Event {
             location: location.map(Rc::new),
             time: time,
         }
+    }
+}
+
+impl Serialize for Event {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use std::ops::Deref;
+        let mut state = serializer.serialize_struct("Event", 3)?;
+        state.serialize_field("time", &self.time)?;
+        state.serialize_field("name", &*self.name)?;
+        if let Some(ref val) = self.location {
+            state.serialize_field("location", val.deref())?;
+        }
+        state.end()
     }
 }
 
