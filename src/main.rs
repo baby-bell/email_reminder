@@ -4,6 +4,10 @@ extern crate iron;
 #[macro_use]
 extern crate router;
 
+use iron::prelude::*;
+use iron::status;
+use router::Router;
+
 extern crate serde;
 extern crate serde_json;
 #[macro_use]
@@ -20,18 +24,27 @@ mod email;
 use event::EventTable;
 use error::Error;
 
-const SETTINGS_FILE: &str = "settings.json";
+const SETTINGS_FILE: &str = "./settings.json";
 
 #[derive(Deserialize)]
 pub struct Settings {
     pub username: String,
     pub password: String,
     pub destination_email: String,
+    pub serving_port: u16,
+}
+
+fn handler(req: &mut Request) -> IronResult<Response> {
+    Ok(Response::with((status::Ok, "Hello World")))
 }
 
 fn main() {
+    let router = router! {
+        index: get "/" => handler
+    };
     let settings = read_settings().expect("failed to read settings");
     email::connect(&settings).expect("could not connect to email provider");
+    Iron::new(router).http("localhost:8000").unwrap();
 }
 
 fn read_settings() -> Result<Settings, Error> {
