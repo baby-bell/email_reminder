@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::rc::Rc;
+use std::sync::Arc;
 use std::collections::{BTreeSet, HashMap, Bound};
 use std::collections::btree_set::{Iter, Range};
 use std::iter::Filter;
@@ -14,16 +14,16 @@ type Time = DateTime<Local>;
 #[derive(Debug, PartialEq, Eq, Clone, Hash, PartialOrd, Ord)]
 pub struct Event {
     time: Time,
-    name: Rc<String>,
-    location: Option<Rc<String>>,
+    name: Arc<String>,
+    location: Option<Arc<String>>,
 }
 
 impl Event {
     /// Construct an event with the corresponding data.
     pub fn new(name: String, location: Option<String>, time: Time) -> Self {
         Event {
-            name: Rc::new(name),
-            location: location.map(Rc::new),
+            name: Arc::new(name),
+            location: location.map(Arc::new),
             time: time,
         }
     }
@@ -72,6 +72,14 @@ impl EventTable {
     pub fn add_event(&mut self, e: Event) {
         self.events.insert(e.clone());
         self.reminders.insert(e, vec![]);
+    }
+
+    pub fn events_by_name(&self, name: &str) -> Vec<Event> {
+        let v: Vec<_> = self.events.iter()
+                                   .filter(|&x| &*x.name == name)
+                                   .cloned()
+                                   .collect();
+        v
     }
 
     /// Get all events that lie within `[start, end)`.
